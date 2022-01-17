@@ -1,143 +1,97 @@
 #library("dplyr")
 #library("stats")
-
-Itemset<- read.csv("/home/amro/Documents/College/Fall-22 Class Material/Data Science + R/Final Project/grcDataset-master/grc.csv")
-Itemset<- select(Itemset, items, count, customer, age, city, total, paymentType)
-
-#compare cash & credit totals
-pie(
-  x= table(Itemset$paymentType),
-  main = "Compare Cash & Credit Total Spending"
-)
-#compare totals by age
-compAges<- group_by(Itemset, age)
-compAges<- summarize(comAges, total=sum(total))
-plot(
-  x= totalAge$age,
-  y= totalAge$total,
-  main = "Age VS. Total Spending",
-  xlab = "Age",
-  ylab = "Total"
-)
-#compare each city's total
-compCities<- group_by(Itemset, city)
-compCities<- summarize(comCities, total=sum(total))
-compCities<- arrange(comCities, desc(total))
-barplot(
-  height = comCities$total,
-  names = comCities$city,
-  col = "light blue",
-  main = "Compare Cities Total Spending",
-  xlab = "City",
-  ylab = "Total",
-  horiz = F,
-  axes = T,
-  las = 1
-)
-#distribute total
-boxplot(
-  x= Itemset$total,
-  main = "Distribution of Total Spending",
-  xlab = "Total"
-)
-summary(Itemset)
-
-#combine in one dashboard
-par(mfrow=c(2,2))
-pie(
-  x= table(Itemset$paymentType),
-  main = "Compare Cash & Credit Total Spending"
-)
-plot(
-  x= totalAge$age,
-  y= totalAge$total,
-  main = "Age VS. Total Spending",
-  xlab = "Age",
-  ylab = "Total"
-)
-barplot(
-  height = totalCity$total,
-  names = totalCity$city,
-  beside = F,
-  col = "light green",
-  main = "Compare Cities Total Spending",
-  xlab = "City",
-  ylab = "Total",
-  horiz = F,
-  axes = T,
-  las = 1
-)
-boxplot(
-  x= Itemset$total,
-  main = "Distribution of Total Spending",
-  xlab = "Total"
-)
-
-
-
-#do Kmeans
 #library(ggplot2)
 #library(factoextra)
 #library(ggfortify)
 #library(NbClust)
-#prep vribls
-grpdItemset <- select(Itemset, customer, age, total)
-grpdItemset <- group_by(grpdItemset, customer, age)
-grpdItemset <- summarize(grpdItemset, total=sum(total), .groups = "keep")
-
-clusteredItemset <- select(Itemset, customer, age, total)
-clusteredItemset <- group_by(clusteredItemset, customer, age)
-clusteredItemset <- summarize(clusteredItemset, total=sum(total), .groups = "keep")
-clusteredItemset$customer<- NULL
-as.double(clusteredItemset$total)
-                                                                                            #wssplot <- function(data, nc=12, seed=1234){
-                                                                                            #  wss <- (nrow(data)-1)*sum(apply(data,c(1,2),var))
-                                                                                            # for (i in 1:nc){
-                                                                                            #  set.seed(seed)
-                                                                                            # wss[i] <- sum(kmeans(data, centers=i)$withinss)}
-                                                                                            #plot(1:nc, wss, type="b", xlab="Number of Clusters",
-                                                                                            #    ylab="Within groups sum of squares")
-                                                                                            #}
-                                                                                            #wssplot()
-#to choose the optimal number of centers
-scaledItemset<- scale(clusteredItemset)
-fviz_nbclust(scaledItemset, kmeans, method = "wss") + labs(subtitle = "Elbow Method")
-
-KMout<- kmeans(scaledItemset, centers =3, iter.max = 10000, nstart = 4)
-KMclstrs<- KMout$cluster
-rownames(scaledItemset)<- paste(grpdItemset$customer, 1:dim(grpdItemset)[1], sep = "_")
-
-fviz_cluster(list(data = scaledItemset, clusters = KMclstrs))
-
-grpdItemset$group <- KMclstrs
-View(grpdItemset)
-
-
-#do Apriori Algorithm
 #library(gtools)
 #library(arules)
 #library("arulesViz")
 #library(Matrix)
 
-arItemset<- read.csv("/home/amro/Documents/College/Fall-22 Class Material/Data Science + R/Final Project/grcDataset-master/grc.csv")
-arItemset<- select(arItemset, items)
+Itemset <- read.csv("grc.csv")
+Itemset <- select(Itemset, items, count, customer, age, city, total, paymentType)
 
-transactions<- strsplit(as.vector(arItemset$items), ',') #split items as vector
-transactions.count<- length(transactions)
-unique.items<- unique(unlist(transactions)) #get all items in items set
+#prep samples
+#for total spending of each age
+compAges <- group_by(Itemset, age)
+compAges <- summarize(compAges, total=sum(total))
 
+#for each governorate's total spendings
+compGov <- group_by(Itemset, city)
+compGov <- summarize(compGov, total=sum(total)) # nolint # nolint
+compGov <- arrange(compGov, desc(total))
+
+#combine in one dashboard
+
+par(mfrow=c(2,2))
+pie(   #compare payment type by total spending
+  x= table(Itemset$paymentType), main = "Comparing Cash & Credit Total Spendings")
+boxplot(    #distribute total spendings
+  x= Itemset$total, main = "Distribution of Total Spending", xlab = "Total")
+plot(   #compare total spending of each age within
+  x= compAges$age, y= compAges$total, main = "Age VS. Spendings",
+  xlab = "Age", ylab = "Total")
+barplot(    #compare each governorate's total spendings
+  height = compGov$total, names = compGov$city, col = "light blue", main = "Compare each Governorate Total Spendings", xlab = "City", ylab = "Total", horiz = T, axes = T, las = 1)
+
+summary(Itemset) #so you can explain specifically the spendigs of each one
+
+
+
+#Kmeans cluster analysis for age and total spendings
+
+#prep vribls
+#for filtering the data set and compine it with group number
+grpdItemset <- select(Itemset, customer, age, total)
+grpdItemset <- group_by(grpdItemset, customer, age)
+grpdItemset <- summarize(grpdItemset, total=sum(total), .groups = "keep")
+#for Kmeans
+clusteringItemset <- grpdItemset
+clusteringItemset$customer <- NA
+as.double(clusteringItemset$total)
+
+#to choose the optimal number of centers
+scaledItemset <- scale(clusteringItemset)
+fviz_nbclust(scaledItemset, kmeans, method = "wss") + labs(subtitle = "Elbow")
+
+#clusturing
+KMout <- kmeans(scaledItemset, centers =3, iter.max = 10000, nstart = 4)
+KMclstrs <- KMout$cluster
+rownames(scaledItemset) <- paste(grpdItemset$customer, 1:dim(grpdItemset)[1], sep = "_")
+
+#visualize
+fviz_cluster(list(data = scaledItemset, clusters = KMclstrs))
+
+#assign groups
+grpdItemset$group <- KMclstrs
+View(grpdItemset)
+
+
+#Association Rules in Items
+#Apriori Algorithm
+
+arItemset <- select(Itemset, items)
+
+#explore the data
+transactions <- strsplit(as.vector(arItemset$items), ',')
+transactions.count <- length(transactions)
+unique.items<- unique(unlist(transactions))
+
+#start the algorithm with 0.2% min support & 80 confidence, then sort by confidence
 rules<- apriori(transactions, parameter = list(supp=0.002, conf=0.8), control = list(verbose=F))
-rules.sorted <- sort(rules, by="lift")
+rules.sorted <- sort(rules, by="confidence")
 inspect(rules.sorted)
-#f#ck redundant rules
+
+#redundant rules
 #find
 subset.matrix <- is.subset(rules.sorted, rules.sorted, sparse = F)
 subset.matrix[lower.tri(subset.matrix, diag=T)] <- NA
 redundant <- (colSums(subset.matrix, na.rm=T) >= 1)
 which(redundant)
-#kill
+#prun
 rules.pruned <- rules.sorted[!redundant]
 inspect(rules.pruned)
 
-#VizViz
-#plot(rules.pruned)
+#visualize
+plot(rules.pruned)
