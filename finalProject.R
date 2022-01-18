@@ -15,7 +15,7 @@
 #  library(data.tree)
 #  library(caTools)
 
-Itemset <- read.csv("/home/amro/Documents/College/Fall-22ClassMaterial/Data Science + R/Final Project/grcDataset-master/grc.csv")
+Itemset <- read.csv("grc.csv")
 Itemset <- select(Itemset, items, count, customer, age, city, total, paymentType)
 
 #prep samples
@@ -29,7 +29,6 @@ compGov <- summarize(compGov, total=sum(total)) # nolint # nolint
 compGov <- arrange(compGov, desc(total))
 
 #combine in one dashboard
-
 par(mfrow=c(2,2))
 pie(   #compare payment type by total spending
   x= table(Itemset$paymentType), main = "Comparing Cash & Credit Total Spendings")
@@ -42,7 +41,6 @@ barplot(    #compare each governorate's total spendings
   height = compGov$total, names = compGov$city, col = "light blue", main = "Compare each Governorate Total Spendings", xlab = "City", ylab = "Total", horiz = T, axes = T, las = 1)
 
 summary(Itemset) #so you can explain specifically the spendigs of each one
-
 
 
 #Kmeans cluster analysis for age and total spendings
@@ -122,6 +120,6 @@ tree.payType.prdct <- predict(tree, test, type = 'class')
 #Confusion matrix
 confusionMatrix(tree.payType.prdct, test$paymentType)
 
-#VizViz
+#visualize
 prp(tree)
 rpart.plot(tree)
