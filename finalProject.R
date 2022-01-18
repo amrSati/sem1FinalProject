@@ -1,15 +1,21 @@
-#library("dplyr")
-#library("stats")
-#library(ggplot2)
-#library(factoextra)
-#library(ggfortify)
-#library(NbClust)
-#library(gtools)
-#library(arules)
-#library("arulesViz")
-#library(Matrix)
+#  library("dplyr")
+#  library("stats")
+#  library(ggplot2)
+#  library(factoextra)
+#  library(ggfortify)
+#  library(NbClust)
+#  library(gtools)
+#  library(arules)
+#  library("arulesViz")
+#  library(Matrix)
+#  library(FSelector)
+#  library(rpart)
+#  library(rpart.plot)
+#  library(caret)
+#  library(data.tree)
+#  library(caTools)
 
-Itemset <- read.csv("grc.csv")
+Itemset <- read.csv("/home/amro/Documents/College/Fall-22ClassMaterial/Data Science + R/Final Project/grcDataset-master/grc.csv")
 Itemset <- select(Itemset, items, count, customer, age, city, total, paymentType)
 
 #prep samples
@@ -48,7 +54,7 @@ grpdItemset <- group_by(grpdItemset, customer, age)
 grpdItemset <- summarize(grpdItemset, total=sum(total), .groups = "keep")
 #for Kmeans
 clusteringItemset <- grpdItemset
-clusteringItemset$customer <- NA
+clusteringItemset$customer <- NULL
 as.double(clusteringItemset$total)
 
 #to choose the optimal number of centers
@@ -56,7 +62,7 @@ scaledItemset <- scale(clusteringItemset)
 fviz_nbclust(scaledItemset, kmeans, method = "wss") + labs(subtitle = "Elbow")
 
 #clusturing
-KMout <- kmeans(scaledItemset, centers =3, iter.max = 10000, nstart = 4)
+KMout <- kmeans(scaledItemset, centers =3)
 KMclstrs <- KMout$cluster
 rownames(scaledItemset) <- paste(grpdItemset$customer, 1:dim(grpdItemset)[1], sep = "_")
 
@@ -76,10 +82,10 @@ arItemset <- select(Itemset, items)
 #explore the data
 transactions <- strsplit(as.vector(arItemset$items), ',')
 transactions.count <- length(transactions)
-unique.items<- unique(unlist(transactions))
+unique.items <- unique(unlist(transactions))
 
 #start the algorithm with 0.2% min support & 80 confidence, then sort by confidence
-rules<- apriori(transactions, parameter = list(supp=0.002, conf=0.8), control = list(verbose=F))
+rules <- apriori(transactions, parameter = list(supp=0.002, conf=0.8), control = list(verbose=F))
 rules.sorted <- sort(rules, by="confidence")
 inspect(rules.sorted)
 
@@ -95,3 +101,27 @@ inspect(rules.pruned)
 
 #visualize
 plot(rules.pruned)
+
+
+#build the prediction tree
+basket <- select(Itemset, paymentType, city, age)
+basket <- mutate(basket, paymentType=factor(paymentType), city=factor(city), age=as.numeric(age))
+
+#splitting into training $ testing sets
+set.seed(1234)
+sample = sample.split(basket, SplitRatio = .30)
+train = subset(basket, sample==T)
+test = subset(basket, sample==F)
+
+#decision tree classifier
+tree <- rpart(paymentType ~.,data = train)
+
+#predictions
+tree.payType.prdct <- predict(tree, test, type = 'class')
+
+#Confusion matrix
+confusionMatrix(tree.payType.prdct, test$paymentType)
+
+#VizViz
+prp(tree)
+rpart.plot(tree)
